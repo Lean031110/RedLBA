@@ -1,0 +1,13 @@
+node_modules/
+dist/
+web/dist/
+data/
+*.log
+.env
+.env.local
+.DS_Store
+*.tsbuildinfo
+backups/
+deploy/generated/
+server.log
+server.pid

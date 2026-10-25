@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  validar:
+    name: Compilar, probar y validar
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci --no-audit --no-fund
+
+      - name: Comprobar tipos (servidor y web)
+        run: npm run typecheck
+
+      - name: Compilar
+        run: npm run build
+
+      - name: Pruebas de la API
+        run: node --test test/*.test.mjs
+
+      - name: Sintaxis del instalador
+        run: bash -n install.sh
+
+      - name: Verificar que la web compilada existe
+        run: test -f web/dist/index.html && test -f server/dist/index.js
+
+  instalador:
+    name: Instalador en Ubuntu
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    needs: validar
+
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Ejecutar el instalador en modo seguro
+        run: ./install.sh --auto --dominio ejemplo.test
+
+      - name: Comprobar los artefactos generados
+        run: |
+          test -f deploy/generated/INFORME-INSTALACION.md
+          test -f deploy/generated/Caddyfile
+          test -f deploy/generated/GUIA-CORREO.md
+          test -f deploy/generated/GUIA-LDAP.md
+          test -f deploy/generated/db.ejemplo.test
+
+      - name: Arrancar la aplicación y comprobar la salud
+        run: |
+          PORT=8123 node server/dist/index.js &> server.log &
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8123/api/health && exit 0
+            sleep 1
+          done
+          echo "La aplicación no respondió"; cat server.log; exit 1

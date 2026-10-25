@@ -1,0 +1,72 @@
+services:
+  redlba:
+    build: .
+    container_name: redlba
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      REDLBA_DOMAIN: ${REDLBA_DOMAIN:-redlba.local}
+      LDAP_URL: ldap://openldap:389
+      TRUST_PROXY: "true"
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      openldap:
+        condition: service_healthy
+    networks:
+      - redlba
+
+  openldap:
+    image: bitnami/openldap:2.6
+    container_name: redlba-ldap
+    restart: unless-stopped
+    environment:
+      LDAP_ROOT: ${LDAP_BASE_DN:-dc=redlba,dc=local}
+      LDAP_ADMIN_USERNAME: ${LDAP_ADMIN_USERNAME:-admin}
+      LDAP_ADMIN_PASSWORD: ${LDAP_BIND_PASSWORD:-admin}
+      # Ou donde viven los usuarios (RedLBA espera ou=people).
+      LDAP_USER_DC: people
+      LDAP_GROUP: redlba-usuarios
+      LDAP_USERS: redlba
+      LDAP_PASSWORDS: ${LDAP_BIND_PASSWORD:-admin}
+      LDAP_USERNAME: ${LDAP_BIND_DN:-cn=admin,dc=redlba,dc=local}
+    volumes:
+      - ldap-data:/bitnami/openldap
+    healthcheck:
+      test: ["CMD-SHELL", "ldapsearch -x -H ldap://localhost:389 -D \"$$LDAP_USERNAME\" -w \"$$LDAP_ADMIN_PASSWORD\" -b \"$$LDAP_ROOT\" -s base >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - redlba
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: redlba-caddy
+    restart: unless-stopped
+    profiles: ["proxy"]
+    depends_on:
+      - redlba
+    environment:
+      REDLBA_DOMAIN: ${REDLBA_DOMAIN:-redlba.local}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@redlba.local}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - redlba
+
+volumes:
+  ldap-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  redlba:
+    driver: bridge

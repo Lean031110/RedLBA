@@ -1,0 +1,29 @@
+{
+  "name": "redlba",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c cyan,magenta \"npm:dev:server\" \"npm:dev:web\"",
+    "dev:server": "npm --workspace server run dev",
+    "dev:web": "npm --workspace web run dev",
+    "build": "npm --workspace web run build && npm --workspace server run build",
+    "start": "node server/dist/index.js",
+    "bootstrap": "npm --workspace server run bootstrap",
+    "ldap:sync": "npm --workspace server run ldap:sync",
+    "ldap:check": "npm --workspace server run ldap:check",
+    "backup": "npm --workspace server run backup",
+    "typecheck": "npm --workspace server run typecheck && npm --workspace web run typecheck",
+    "test": "npm run build && node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=22.5"
+  }
+}

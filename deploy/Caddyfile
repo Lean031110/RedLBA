@@ -1,0 +1,53 @@
+{
+	email {$ACME_EMAIL}
+}
+
+# RedLBA · los cuatro subdominios servidos por la misma app.
+# El Host decide qué ve: portal, panel, buscador o webmail.
+(redlba) {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+		X-Frame-Options "SAMEORIGIN"
+	}
+	reverse_proxy redlba:8080
+}
+
+# --- Portal ----------------------------------------------------------------
+portal.{$REDLBA_DOMAIN} {
+	import redlba
+}
+
+{$REDLBA_DOMAIN} {
+	redir https://portal.{$REDLBA_DOMAIN}{uri} 302
+}
+
+# --- Administración --------------------------------------------------------
+admin.{$REDLBA_DOMAIN} {
+	import redlba
+}
+
+# --- Buscador --------------------------------------------------------------
+buscar.{$REDLBA_DOMAIN} {
+	import redlba
+}
+
+# --- Webmail ---------------------------------------------------------------
+correo.{$REDLBA_DOMAIN} {
+	import redlba
+}
+
+# --- Ejemplo: proteger otro servicio con el SSO de RedLBA ------------------
+# nextcloud.{$REDLBA_DOMAIN} {
+# 	forward_auth redlba:8080 {
+# 		uri /api/gateway/auth
+# 		copy_headers X-RedLBA-User X-RedLBA-Email X-RedLBA-Name X-RedLBA-Roles X-RedLBA-Groups
+# 	}
+# 	reverse_proxy nextcloud:80
+# }
+#
+# Si prefieres añadir los dominios que genere RedLBA (Módulos → Configuración
+# de proxy), copia ese bloque al final de este fichero y ejecuta:
+#   caddy reload --config /etc/caddy/Caddyfile

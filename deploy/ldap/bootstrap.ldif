@@ -1,0 +1,75 @@
+# Estructura base de OpenLDAP para RedLBA.
+# Importar con:
+#   ldapadd -x -H ldap://localhost:389 -D cn=admin,dc=redlba,dc=local -w <pass> -f bootstrap.ldif
+# Ajusta dc=redlba,dc=local a tu dominio real.
+
+dn: dc=redlba,dc=local
+objectClass: top
+objectClass: dcObject
+objectClass: organization
+o: RedLBA
+dc: redlba
+
+dn: ou=people,dc=redlba,dc=local
+objectClass: organizationalUnit
+ou: people
+description: Personas del servidor
+
+dn: ou=groups,dc=redlba,dc=local
+objectClass: organizationalUnit
+ou: groups
+description: Grupos y roles del servidor
+
+# --- Grupos ---------------------------------------------------------------
+dn: cn=redlba-admins,ou=groups,dc=redlba,dc=local
+objectClass: groupOfNames
+objectClass: posixGroup
+cn: redlba-admins
+gidNumber: 20000
+description: Administradores de RedLBA
+member: cn=admin,dc=redlba,dc=local
+
+dn: cn=redlba-soporte,ou=groups,dc=redlba,dc=local
+objectClass: groupOfNames
+objectClass: posixGroup
+cn: redlba-soporte
+gidNumber: 20001
+description: Soporte y helpdesk
+member: cn=admin,dc=redlba,dc=local
+
+dn: cn=redlba-usuarios,ou=groups,dc=redlba,dc=local
+objectClass: groupOfNames
+objectClass: posixGroup
+cn: redlba-usuarios
+gidNumber: 20002
+description: Cuentas estándar
+member: cn=admin,dc=redlba,dc=local
+
+# --- Usuario de servicio de RedLBA ---------------------------------------
+dn: cn=redlba,dc=redlba,dc=local
+objectClass: simpleSecurityObject
+objectClass: organizationalRole
+cn: redlba
+description: Cuenta de servicio para RedLBA (lectura/escritura de people y groups)
+userPassword: {SSHA}reemplaza-este-hash
+
+# --- Usuario de ejemplo ---------------------------------------------------
+# Genera el hash con: slappasswd -h {SSHA} -s 'ContraseñaFuerte'
+dn: uid=ana,ou=people,dc=redlba,dc=local
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: ana
+cn: Ana Ruiz
+sn: Ruiz
+givenName: Ana
+displayName: Ana Ruiz
+mail: ana@redlba.local
+title: Administradora de sistemas
+ou: Sistemas
+telephoneNumber: +34 600 000 000
+uidNumber: 10001
+gidNumber: 20002
+homeDirectory: /home/ana
+loginShell: /bin/bash
+userPassword: {SSHA}reemplaza-este-hash
